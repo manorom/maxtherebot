@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 try:
     import ujson as json
@@ -13,7 +13,7 @@ from telegram.utils.webhookhandler import WebhookHandler, WebhookServer
 from telegram.ext import Updater
 
 
-_max_last_seen = datetime.now()
+_max_last_seen = datetime.now() - timedelta(minutes=30)
 
 max_token = None
 
@@ -22,6 +22,7 @@ def max_last_seen():
     return _max_last_seen
 
 def set_max_seen():
+    global _max_last_seen
     _max_last_seen = datetime.now()
 
 
@@ -29,7 +30,7 @@ class MaxHttpHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
 
     def __init__(self, application, request, **kwargs):
-        super(WebhookHandler, self).__init__(application, request, **kwargs)
+        super(MaxHttpHandler, self).__init__(application, request, **kwargs)
         self.logger = logging.getLogger(__name__)
 
     def set_default_headers(self):
@@ -60,7 +61,7 @@ class MaxHttpHandler(tornado.web.RequestHandler):
             return False
     
     def write_error(self, status_code, **kwargs):
-        super(WebhookHandler, self).write_error(status_code, **kwargs)
+        super(MaxHttpHandler, self).write_error(status_code, **kwargs)
         self.logger.debug("%s - - %s" % (self.request.remote_ip, "Exception in WebhookHandler"),
                           exc_info=kwargs['exc_info'])
 
@@ -71,8 +72,8 @@ class WebhookAppClass(tornado.web.Application):
         self.shared_objects = {"bot": bot, "update_queue": update_queue}
         handlers = [
             (r"{0}/?".format(webhook_path), WebhookHandler,
-             self.shared_objects)
-            (r"max_present/?", MaxHttpHandler)
+             self.shared_objects),
+            (r"/max_present?", MaxHttpHandler)
             ]  # noqa
         tornado.web.Application.__init__(self, handlers)
 
