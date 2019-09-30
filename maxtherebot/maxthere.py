@@ -1,0 +1,99 @@
+import logging
+from datetime import datetime
+
+try:
+    import ujson as json
+except ImportError:
+    import json
+
+from future.utils import bytes_to_native_str
+
+import tornado.web
+from telegram.utils.webhookhandler import WebhookHandler, WebhookServer
+from telegram.ext import Updater
+
+
+_max_last_seen = datetime.now()
+
+max_token = None
+
+
+def max_last_seen():
+    return _max_last_seen
+
+def set_max_seen():
+    _max_last_seen = datetime.now()
+
+
+class MaxHttpHandler(tornado.web.RequestHandler):
+    SUPPORTED_METHODS = ["POST"]
+
+    def __init__(self, application, request, **kwargs):
+        super(WebhookHandler, self).__init__(application, request, **kwargs)
+        self.logger = logging.getLogger(__name__)
+
+    def set_default_headers(self):
+        self.set_header("Content-Type", 'application/json; charset="utf-8"')
+    
+    def post(self):
+        self.logger.debug('Max endpoint triggered')
+        self._validate_post()
+        json_string = bytes_to_native_str(self.request.body)
+        data = json.loads(json_string)
+        self.logger.debug('Max endpoint received data: ' + json_string)
+        if self._validate_payload(data):
+            set_max_seen()
+            self.set_status(200)
+        else:
+            self.set_status(403)
+
+
+    def _validate_post(self):
+        ct_header = self.request.headers.get("Content-Type", None)
+        if ct_header != 'application/json':
+            raise tornado.web.HTTPError(403)
+    
+    def _validate_payload(self, data):
+        if data.get('max_token', 0) == max_token:
+            return True
+        else:
+            return False
+    
+    def write_error(self, status_code, **kwargs):
+        super(WebhookHandler, self).write_error(status_code, **kwargs)
+        self.logger.debug("%s - - %s" % (self.request.remote_ip, "Exception in WebhookHandler"),
+                          exc_info=kwargs['exc_info'])
+
+
+class WebhookAppClass(tornado.web.Application):
+
+    def __init__(self, webhook_path, bot, update_queue):
+        self.shared_objects = {"bot": bot, "update_queue": update_queue}
+        handlers = [
+            (r"{0}/?".format(webhook_path), WebhookHandler,
+             self.shared_objects)
+            (r"max_present/?", MaxHttpHandler)
+            ]  # noqa
+        tornado.web.Application.__init__(self, handlers)
+
+    def log_request(self, handler):
+        pass
+
+
+def patched_start_webhook(self, listen, port, url_path, cert, key,
+                          bootstrap_retries, clean, webhook_url,
+                          allowed_updates):
+        self.logger.debug('Updater thread started (webhook)')
+        if not url_path.startswith('/'):
+            url_path = '/{0}'.format(url_path)
+
+        # Create Tornado app instance
+        app = WebhookAppClass(url_path, self.bot, self.update_queue)
+
+        # Create and start server
+        self.httpd = WebhookServer(listen, port, app, None)
+
+        self.httpd.serve_forever()
+
+def patch_webhook():
+    Updater._start_webhook = patched_start_webhook
