@@ -6,4 +6,4 @@ RUN pip install -r /requirements.txt
 COPY . /app
 WORKDIR /app
 
-CMD ["python3", "run.py"]
+CMD ["python3", "run.py", "--bind", "0.0.0.0", "--port", "8085"]
