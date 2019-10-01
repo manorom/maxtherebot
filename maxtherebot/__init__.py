@@ -13,5 +13,5 @@ def cli():
     configure_dispatcher(updater.dispatcher)
     port = 8055
     local_urlpath = telegram_token
-    updater.start_webhook(listen="127.0.0.1", port=port, url_path=local_urlpath)
+    updater.start_webhook(listen="0.0.0.0", port=port, url_path=local_urlpath)
     updater.idle()

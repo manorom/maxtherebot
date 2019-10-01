@@ -7,15 +7,15 @@ from .maxthere import max_last_seen
 def maxthere_callback(update, context):
     last_seen = max_last_seen()
     if datetime.now() - last_seen < timedelta(minutes=5):
-        update.message.reply_text('Ich hab Max vor 5 Minuten noch gesehen')
+        update.message.reply_text('Ich hab Max in den letzten 5 Minuten noch gesehen')
     elif datetime.now() - last_seen < timedelta(minutes=10):
-        update.message.reply_text('Ich hab Max vor 10 Minuten noch gesehe')
+        update.message.reply_text('Ich hab Max in den letzten 10 Minuten noch gesehe')
     else:
         update.message.reply_text('Ich glaube Max ist nicht da.')
 
 
 def help_callback(update, context):
-    update.message.reply_text('Mit dem Befehl /max kann dir sagen wann Max mir zuletzt gemeldet hat, dass er im Keller ist.')
+    update.message.reply_text('Mit dem Befehl /max kann ich dir sagen wann ich Max zuletzt im Keller gesehen habe.')
 
 
 def configure_dispatcher(dispatcher):
