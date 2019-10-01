@@ -1,11 +1,11 @@
 from datetime import timedelta, datetime
 from telegram.ext import CommandHandler
 
-from .maxthere import max_last_seen
+from .maxthere import max_there_state
 
 
 def maxthere_callback(update, context):
-    last_seen = max_last_seen()
+    last_seen = max_there_state.last_seen()
     if datetime.now() - last_seen < timedelta(minutes=5):
         update.message.reply_text('Ich hab Max in den letzten 5 Minuten noch gesehen')
     elif datetime.now() - last_seen < timedelta(minutes=10):

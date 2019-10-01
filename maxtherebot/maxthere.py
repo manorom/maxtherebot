@@ -12,19 +12,18 @@ import tornado.web
 from telegram.utils.webhookhandler import WebhookHandler, WebhookServer
 from telegram.ext import Updater
 
-
-_max_last_seen = datetime.now() - timedelta(minutes=30)
-
 max_token = None
 
 
-def max_last_seen():
-    return _max_last_seen
+class MaxThereState(object):
+    def __init__(self):
+        self._last_seen = datetime.now() - timedelta(minutes=30)
+    def last_seen(self):
+        return self._last_seen
+    def set_seen(self):
+        self._last_seen = datetime.now()
 
-def set_max_seen():
-    global _max_last_seen
-    _max_last_seen = datetime.now()
-
+max_there_state = MaxThereState()
 
 class MaxHttpHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
@@ -43,7 +42,7 @@ class MaxHttpHandler(tornado.web.RequestHandler):
         data = json.loads(json_string)
         self.logger.debug('Max endpoint received data: ' + json_string)
         if self._validate_payload(data):
-            set_max_seen()
+            max_there_state.set_seen()
             self.set_status(200)
         else:
             self.set_status(403)
